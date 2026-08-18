@@ -6,9 +6,24 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The repository currently contains the project overview and directory structure.
-The Python modules, command-line interface, and tests are planned and have not been
-implemented yet.
+The Python package scaffold is in place. Screenshot capture, configuration loading,
+the API client, and the command-line interface have not been implemented yet.
+
+## Development setup
+
+Python 3.10 or newer is required. From the repository root:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+```
+
+Tests will use the standard library's `unittest` module:
+
+```bash
+python -m unittest discover -s tests/unit -v
+```
 
 ## How it will work
 
@@ -50,7 +65,7 @@ docs/               Usage guides and examples
 
 ## Development plan
 
-- [ ] Set up Python packaging and dependencies.
+- [x] Set up Python packaging.
 - [ ] Add configuration loading and validation.
 - [ ] Implement image encoding and screenshot capture.
 - [ ] Add the vision API client.
