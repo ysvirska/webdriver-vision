@@ -6,8 +6,9 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The Python package scaffold is in place. Screenshot capture, configuration loading,
-the API client, and the command-line interface have not been implemented yet.
+The Python package and YAML configuration loader are implemented. Screenshot
+capture, the API client, and the command-line interface have not been implemented
+yet. See [configuration loading](docs/configuration.md) for the current API.
 
 ## Development setup
 
@@ -19,7 +20,7 @@ source .venv/bin/activate
 python -m pip install -e .
 ```
 
-Tests will use the standard library's `unittest` module:
+Run unit tests with the standard library's `unittest` module:
 
 ```bash
 python -m unittest discover -s tests/unit -v
