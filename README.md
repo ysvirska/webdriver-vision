@@ -6,9 +6,10 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The Python package and YAML configuration loader are implemented. Screenshot
-capture, the API client, and the command-line interface have not been implemented
-yet. See [configuration loading](docs/configuration.md) for the current API.
+The Python package and YAML configuration loader with an environment override for
+the API key are implemented. Screenshot capture, the API client, and the
+command-line interface have not been implemented yet. See
+[configuration loading](docs/configuration.md) for the current API.
 
 ## Development setup
 
