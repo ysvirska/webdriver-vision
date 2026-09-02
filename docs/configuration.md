@@ -24,7 +24,30 @@ ai:
 The loader preserves nested YAML values as Python dictionaries, lists, and scalars.
 It raises `ConfigurationError` for invalid YAML or a document whose root is not a
 mapping. Missing files and other file access errors propagate as `OSError`
-subclasses. Full field validation will be added separately.
+subclasses.
+
+## Validation
+
+`load_config` validates supplied fields after applying the API key override.
+You can also call `validate_config(settings)` to check an existing dictionary.
+Validation leaves the dictionary unchanged and does not insert defaults.
+Sections and fields are optional; unknown fields are preserved.
+
+| Field | Accepted values |
+| --- | --- |
+| `browser.headless` | A boolean. |
+| `browser.window_size` | A list of two positive integers: width and height. |
+| `screenshot.format` | `png` or `jpeg`, in lowercase. |
+| `screenshot.full_page` | A boolean. |
+| `screenshot.quality` | An integer from 1 to 95; used for JPEG encoding. |
+| `ai.api_url` | An absolute HTTP or HTTPS URL with a hostname and valid port. |
+| `ai.api_key`, `ai.model`, `ai.prompt` | Non-empty strings. |
+| `ai.timeout` | A finite positive number of seconds. |
+
+Wrong types and values raise `ConfigurationError` identifying the field. Values
+are not coerced: for example, the string `"false"` is not accepted as a boolean.
+An empty configuration is valid at this stage; required settings will be checked
+by the components that use them.
 
 ## API credentials
 

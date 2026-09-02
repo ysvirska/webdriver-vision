@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from webdriver_vision.config import ConfigurationError, load_config
+from webdriver_vision.config import ConfigurationError, load_config, validate_config
 
 
 class LoadConfigTests(unittest.TestCase):
@@ -134,6 +134,127 @@ class LoadConfigTests(unittest.TestCase):
         settings = load_config(self.path)
         self.assertEqual(settings["other"], {"model": "test-model"})
         self.assertEqual(settings["ai"]["api_key"], "environment-key")
+
+    def test_validate_loaded_settings(self):
+        self.write_config('browser: {headless: "yes"}\n')
+        with self.assertRaisesRegex(ConfigurationError, "browser.headless"):
+            load_config(self.path)
+
+    def test_environment_override_is_applied_before_validation(self):
+        self.write_config("ai: {api_key: null}\n")
+        os.environ["AI_API_KEY"] = "environment-key"
+        self.assertEqual(load_config(self.path)["ai"]["api_key"], "environment-key")
+
+
+class ValidateConfigTests(unittest.TestCase):
+    def test_accept_partial_configuration_without_mutation(self):
+        for settings in (
+            {},
+            {"ai": {"timeout": 0.5}},
+            {"custom": {"enabled": True}},
+        ):
+            with self.subTest(settings=settings):
+                original = repr(settings)
+                validate_config(settings)
+                self.assertEqual(repr(settings), original)
+
+    def test_accept_all_supported_fields(self):
+        validate_config(
+            {
+                "browser": {"headless": False, "window_size": [1920, 1080]},
+                "screenshot": {"format": "jpeg", "quality": 85, "full_page": True},
+                "ai": {
+                    "api_url": "https://api.example.com:443/v1/messages",
+                    "api_key": "test-key",
+                    "model": "test-model",
+                    "timeout": 30,
+                    "prompt": "Check the screenshot.",
+                },
+            }
+        )
+
+    def test_reject_invalid_root_and_section_types(self):
+        for settings in (None, [], "text"):
+            with self.subTest(settings=settings):
+                with self.assertRaises(ConfigurationError):
+                    validate_config(settings)
+        for section in ("browser", "screenshot", "ai"):
+            for value in (None, [], True, "text"):
+                with self.subTest(section=section, value=value):
+                    with self.assertRaisesRegex(ConfigurationError, section):
+                        validate_config({section: value})
+
+    def test_reject_boolean_lookalikes(self):
+        for section, field in (
+            ("browser", "headless"), ("screenshot", "full_page")
+        ):
+            for value in ("false", 0, 1, None):
+                with self.subTest(section=section, value=value):
+                    with self.assertRaisesRegex(ConfigurationError, field):
+                        validate_config({section: {field: value}})
+
+    def test_validate_window_dimensions(self):
+        validate_config({"browser": {"window_size": [1, 1]}})
+        for size in (
+            [0, 10], [-1, 10], [True, 10], [1.5, 10],
+            [10], [1, 2, 3], "10,10", None,
+        ):
+            with self.subTest(size=size):
+                with self.assertRaisesRegex(ConfigurationError, "window_size"):
+                    validate_config({"browser": {"window_size": size}})
+
+    def test_validate_image_format(self):
+        for format in ("png", "jpeg"):
+            validate_config({"screenshot": {"format": format}})
+        for format in ("gif", "jpg", "PNG", "", None, []):
+            with self.subTest(format=format):
+                with self.assertRaisesRegex(ConfigurationError, "screenshot.format"):
+                    validate_config({"screenshot": {"format": format}})
+
+    def test_validate_jpeg_quality_bounds(self):
+        for quality in (1, 95):
+            validate_config({"screenshot": {"quality": quality}})
+        for quality in (0, 96, True, 85.0, "85", None):
+            with self.subTest(quality=quality):
+                with self.assertRaisesRegex(ConfigurationError, "screenshot.quality"):
+                    validate_config({"screenshot": {"quality": quality}})
+
+    def test_validate_ai_strings_without_exposing_values(self):
+        for field in ("api_key", "model", "prompt"):
+            for value in (None, "", "  ", 123, {"private": "value"}):
+                with self.subTest(field=field, value=value):
+                    with self.assertRaises(ConfigurationError) as caught:
+                        validate_config({"ai": {field: value}})
+                    self.assertEqual(
+                        str(caught.exception),
+                        f"ai.{field} must be a non-empty string.",
+                    )
+
+    def test_validate_api_url(self):
+        for url in (
+            "http://localhost:8000/analyze",
+            "https://api.example.com/v1",
+            "http://[::1]:8000",
+        ):
+            validate_config({"ai": {"api_url": url}})
+        for url in (
+            "/v1", "https://", "ftp://example.com", "https://bad host",
+            "https://[", "https://example.com:wrong", "http://localhost:0",
+            "http://localhost:65536", None,
+        ):
+            with self.subTest(url=url):
+                with self.assertRaisesRegex(ConfigurationError, "ai.api_url"):
+                    validate_config({"ai": {"api_url": url}})
+
+    def test_validate_timeout(self):
+        for timeout in (0.1, 1, 30.5):
+            validate_config({"ai": {"timeout": timeout}})
+        for timeout in (
+            0, -1, True, "30", None, float("nan"), float("inf"), -float("inf"),
+        ):
+            with self.subTest(timeout=timeout):
+                with self.assertRaisesRegex(ConfigurationError, "ai.timeout"):
+                    validate_config({"ai": {"timeout": timeout}})
 
 
 if __name__ == "__main__":

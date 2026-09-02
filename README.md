@@ -6,9 +6,9 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The Python package and YAML configuration loader with an environment override for
-the API key are implemented. Screenshot capture, the API client, and the
-command-line interface have not been implemented yet. See
+The Python package and YAML configuration loader with field validation and an
+environment override for the API key are implemented. Screenshot capture, the API
+client, and the command-line interface have not been implemented yet. See
 [configuration loading](docs/configuration.md) for the current API.
 
 ## Development setup
@@ -68,7 +68,7 @@ docs/               Usage guides and examples
 ## Development plan
 
 - [x] Set up Python packaging.
-- [ ] Add configuration loading and validation.
+- [x] Add configuration loading and validation.
 - [ ] Implement image encoding and screenshot capture.
 - [ ] Add the vision API client.
 - [ ] Connect the modules through a command-line interface.
