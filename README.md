@@ -6,10 +6,10 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The Python package and YAML configuration loader with field validation and an
-environment override for the API key are implemented. Screenshot capture, the API
-client, and the command-line interface have not been implemented yet. See
-[configuration loading](docs/configuration.md) for the current API.
+The Python package, configuration loading and validation, and PNG/JPEG base64
+encoding are implemented. Screenshot capture, the API client, and the command-line
+interface have not been implemented yet. See [configuration loading](docs/configuration.md)
+and [screenshot encoding](docs/encoding.md) for the current APIs.
 
 ## Development setup
 
@@ -45,7 +45,7 @@ Selenium -> Screenshot -> Base64 -> Vision API -> Text report
 - Look for error messages during automated browser tests.
 - Review screenshots when investigating page rendering problems.
 
-## Planned modules
+## Module layout
 
 | Module | Responsibility |
 | --- | --- |
@@ -69,7 +69,8 @@ docs/               Usage guides and examples
 
 - [x] Set up Python packaging.
 - [x] Add configuration loading and validation.
-- [ ] Implement image encoding and screenshot capture.
+- [x] Add image encoding.
+- [ ] Implement screenshot capture.
 - [ ] Add the vision API client.
 - [ ] Connect the modules through a command-line interface.
 - [ ] Add tests, CI, and usage documentation.
