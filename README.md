@@ -6,10 +6,11 @@ such as broken layouts, overlapping elements, or error messages.
 
 ## Project status
 
-The Python package, configuration loading and validation, and PNG/JPEG base64
-encoding are implemented. Screenshot capture, the API client, and the command-line
-interface have not been implemented yet. See [configuration loading](docs/configuration.md)
-and [screenshot encoding](docs/encoding.md) for the current APIs.
+Chrome screenshot capture, configuration loading and validation, and PNG/JPEG
+base64 encoding are implemented. The API client and command-line interface have
+not been implemented yet. See [screenshot capture](docs/capture.md),
+[configuration loading](docs/configuration.md), and
+[screenshot encoding](docs/encoding.md) for the current APIs.
 
 ## Development setup
 
@@ -70,7 +71,7 @@ docs/               Usage guides and examples
 - [x] Set up Python packaging.
 - [x] Add configuration loading and validation.
 - [x] Add image encoding.
-- [ ] Implement screenshot capture.
+- [x] Implement screenshot capture.
 - [ ] Add the vision API client.
 - [ ] Connect the modules through a command-line interface.
 - [ ] Add tests, CI, and usage documentation.

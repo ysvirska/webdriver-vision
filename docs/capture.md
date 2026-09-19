@@ -1,0 +1,39 @@
+# Screenshot capture
+
+Install the package and Google Chrome. Selenium Manager locates a compatible
+driver and may download it on the first run, which requires network access.
+
+```python
+from pathlib import Path
+
+from webdriver_vision import Capture
+from webdriver_vision.encode import encode_image
+
+screenshot = Capture("https://example.com").take()
+Path("screenshot.png").write_bytes(screenshot)
+encoded = encode_image(screenshot)
+```
+
+Each call to `take()` creates a fresh Chrome session, navigates to the URL, returns
+PNG bytes, and closes the session. Selenium exceptions propagate to the caller.
+The screenshot is taken after normal page navigation completes. This does not
+guarantee that asynchronous application content or animations have settled.
+
+| Argument | Default | Meaning |
+| --- | --- | --- |
+| `url` | Required | A non-empty URL accepted by Chrome. |
+| `headless` | `True` | Run Chrome without a visible window. |
+| `window_size` | `(1920, 1080)` | Browser window width and height in CSS pixels; a tuple or list of positive integers. |
+| `full_page` | `False` | Capture the document beyond the viewport using Chrome DevTools Protocol. |
+| `timeout` | `30` | Finite positive page load timeout, in seconds. |
+
+By default, only the current viewport is captured. The viewport can be smaller
+than the outer browser window. For the whole document:
+
+```python
+screenshot = Capture("https://example.com", full_page=True).take()
+```
+
+Full-page capture uses the current document size. It does not scroll through the
+page to trigger lazy loading. Very large documents may exceed Chrome's screenshot
+limits. Capture always returns PNG; use `encode_image` to convert it to JPEG.
