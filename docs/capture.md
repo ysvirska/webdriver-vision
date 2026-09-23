@@ -19,6 +19,10 @@ PNG bytes, and closes the session. Selenium exceptions propagate to the caller.
 The screenshot is taken after normal page navigation completes. This does not
 guarantee that asynchronous application content or animations have settled.
 
+The browser is closed after capture and when setup, navigation, or screenshot
+operations fail. If cleanup also fails, the original capture error is preserved.
+A cleanup failure after a successful capture is reported to the caller.
+
 | Argument | Default | Meaning |
 | --- | --- | --- |
 | `url` | Required | A non-empty URL accepted by Chrome. |

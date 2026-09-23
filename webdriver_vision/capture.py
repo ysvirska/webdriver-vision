@@ -2,6 +2,7 @@
 
 import base64
 import math
+from contextlib import suppress
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -54,9 +55,15 @@ class Capture:
             driver.set_window_size(*self.window_size)
             driver.set_page_load_timeout(self.timeout)
             driver.get(self.url)
-            return self._screenshot(driver)
-        finally:
+            screenshot = self._screenshot(driver)
+        except BaseException:
+            # Cleanup must not replace the original capture error or interrupt.
+            with suppress(Exception):
+                driver.quit()
+            raise
+        else:
             driver.quit()
+            return screenshot
 
     def _screenshot(self, driver: webdriver.Chrome) -> bytes:
         if not self.full_page:
