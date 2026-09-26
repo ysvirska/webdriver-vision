@@ -1,19 +1,23 @@
 """Tests for Chrome screenshot capture without starting a browser."""
 
+import base64
 import unittest
 from unittest.mock import Mock, patch
 
 from selenium.common.exceptions import (
+    InvalidSelectorException,
+    NoSuchElementException,
     SessionNotCreatedException,
     TimeoutException,
     WebDriverException,
 )
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 
 from webdriver_vision import Capture
 
 
-class CaptureCleanupTests(unittest.TestCase):
+class CaptureTests(unittest.TestCase):
     def setUp(self):
         chrome = patch("webdriver_vision.capture.webdriver.Chrome")
         self.chrome = chrome.start()
@@ -94,6 +98,134 @@ class CaptureCleanupTests(unittest.TestCase):
     def test_element_cannot_be_combined_with_full_page_capture(self):
         with self.assertRaisesRegex(ValueError, "full_page"):
             Capture("https://example.com", full_page=True).take(selector="#message")
+        self.chrome.assert_not_called()
+
+    def test_browser_options_and_navigation_order(self):
+        for headless in (True, False):
+            with self.subTest(headless=headless):
+                self.driver.reset_mock()
+                Capture(
+                    "https://example.com", headless=headless,
+                    window_size=(800, 600), timeout=12,
+                ).take()
+                options = self.chrome.call_args.kwargs["options"]
+                self.assertEqual("--headless=new" in options.arguments, headless)
+                operations = [call[0] for call in self.driver.method_calls]
+                self.assertEqual(operations, [
+                    "set_window_size", "set_page_load_timeout", "get",
+                    "get_screenshot_as_png", "quit",
+                ])
+                self.driver.set_window_size.assert_called_once_with(800, 600)
+                self.driver.set_page_load_timeout.assert_called_once_with(12)
+                self.driver.get.assert_called_once_with("https://example.com")
+
+    def test_window_size_is_copied_from_caller(self):
+        window_size = [800, 600]
+        capture = Capture("https://example.com", window_size=window_size)
+        window_size[0] = 1
+        capture.take()
+        self.driver.set_window_size.assert_called_once_with(800, 600)
+
+    def test_each_capture_uses_a_fresh_driver(self):
+        first, second = Mock(), Mock()
+        first.get_screenshot_as_png.return_value = b"first"
+        second.get_screenshot_as_png.return_value = b"second"
+        self.chrome.side_effect = [first, second]
+        capture = Capture("https://example.com")
+        self.assertEqual(capture.take(), b"first")
+        self.assertEqual(capture.take(), b"second")
+        first.quit.assert_called_once_with()
+        second.quit.assert_called_once_with()
+
+    def test_full_page_uses_document_dimensions_in_css_pixels(self):
+        content = {"x": 0, "y": 0, "width": 885.5, "height": 1800.25}
+        screenshot = b"full-page PNG bytes"
+        self.driver.execute_cdp_cmd.side_effect = [
+            {"cssContentSize": content, "contentSize": {"width": 1771}},
+            {"data": base64.b64encode(screenshot).decode("ascii")},
+        ]
+        self.assertEqual(
+            Capture("https://example.com", full_page=True).take(), screenshot
+        )
+        calls = self.driver.execute_cdp_cmd.call_args_list
+        self.assertEqual(calls[0].args, ("Page.getLayoutMetrics", {}))
+        self.assertEqual(calls[1].args, (
+            "Page.captureScreenshot",
+            {
+                "format": "png", "fromSurface": True,
+                "captureBeyondViewport": True, "clip": {**content, "scale": 1},
+            },
+        ))
+        self.driver.get_screenshot_as_png.assert_not_called()
+        self.driver.quit.assert_called_once_with()
+
+    def test_full_page_protocol_errors_close_browser(self):
+        error = WebDriverException("Chrome DevTools command failed.")
+        for responses in ([error], [{"cssContentSize": {}}, error]):
+            with self.subTest(responses=responses):
+                self.driver.reset_mock()
+                self.driver.execute_cdp_cmd.side_effect = responses
+                with self.assertRaises(WebDriverException) as caught:
+                    Capture("https://example.com", full_page=True).take()
+                self.assertIs(caught.exception, error)
+                self.driver.quit.assert_called_once_with()
+
+    def test_invalid_protocol_image_data_closes_browser(self):
+        self.driver.execute_cdp_cmd.side_effect = [
+            {"cssContentSize": {}}, {"data": "invalid base64!"},
+        ]
+        with self.assertRaises(ValueError):
+            Capture("https://example.com", full_page=True).take()
+        self.driver.quit.assert_called_once_with()
+
+    def test_wait_for_missing_then_hidden_element_to_become_visible(self):
+        hidden, visible = Mock(), Mock()
+        hidden.is_displayed.return_value = False
+        visible.is_displayed.return_value = True
+        visible.screenshot_as_png = b"visible element"
+        self.driver.find_element.side_effect = [
+            NoSuchElementException("Not yet in the DOM."), hidden, visible,
+        ]
+        with patch(
+            "webdriver_vision.capture.WebDriverWait",
+            side_effect=lambda driver, timeout: WebDriverWait(
+                driver, timeout, poll_frequency=0.001
+            ),
+        ):
+            screenshot = Capture("https://example.com").take(selector="#delayed")
+        self.assertEqual(screenshot, b"visible element")
+        self.assertEqual(self.driver.find_element.call_count, 3)
+        self.driver.quit.assert_called_once_with()
+
+    def test_invalid_css_error_propagates_and_closes_browser(self):
+        error = InvalidSelectorException("Invalid CSS selector.")
+        self.driver.find_element.side_effect = error
+        with self.assertRaises(InvalidSelectorException) as caught:
+            Capture("https://example.com").take(selector="[")
+        self.assertIs(caught.exception, error)
+        self.driver.quit.assert_called_once_with()
+
+    def test_reject_invalid_selectors_before_browser_start(self):
+        for selector in ("", "  ", 123, []):
+            with self.subTest(selector=selector):
+                with self.assertRaisesRegex(ValueError, "selector"):
+                    Capture("https://example.com").take(selector=selector)
+        self.chrome.assert_not_called()
+
+    def test_reject_invalid_settings_before_browser_start(self):
+        for settings in (
+            {"url": ""}, {"url": "  "}, {"url": None},
+            {"headless": "false"}, {"full_page": 1},
+            {"window_size": None}, {"window_size": "800,600"},
+            {"window_size": [800]}, {"window_size": [True, 600]},
+            {"window_size": [800, 0]}, {"timeout": 0},
+            {"timeout": True}, {"timeout": "30"},
+            {"timeout": float("inf")}, {"timeout": float("nan")},
+        ):
+            with self.subTest(settings=settings):
+                arguments = {"url": "https://example.com", **settings}
+                with self.assertRaises(ValueError):
+                    Capture(**arguments)
         self.chrome.assert_not_called()
 
 

@@ -59,3 +59,13 @@ errors. The browser is closed in each case.
 An empty selector is rejected before Chrome starts. Element capture and
 `full_page=True` cannot be combined. Visibility does not guarantee that images,
 fonts, or animations inside the element have finished loading.
+
+## Tests
+
+The capture unit tests use mocked WebDriver sessions and run without Chrome or
+ChromeDriver. They cover browser options, full-page protocol requests, element
+visibility waits, input validation, and cleanup after failures.
+
+```bash
+python -m unittest discover -s tests/unit -p test_capture.py -v
+```
