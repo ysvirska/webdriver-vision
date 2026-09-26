@@ -3,7 +3,12 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from selenium.common.exceptions import SessionNotCreatedException, WebDriverException
+from selenium.common.exceptions import (
+    SessionNotCreatedException,
+    TimeoutException,
+    WebDriverException,
+)
+from selenium.webdriver.common.by import By
 
 from webdriver_vision import Capture
 
@@ -65,6 +70,31 @@ class CaptureCleanupTests(unittest.TestCase):
             Capture("https://example.com").take()
         self.assertIs(caught.exception, error)
         self.driver.quit.assert_not_called()
+
+    def test_capture_visible_element(self):
+        element = self.driver.find_element.return_value
+        element.is_displayed.return_value = True
+        element.screenshot_as_png = b"element screenshot"
+        screenshot = Capture("https://example.com").take(selector="#message")
+        self.assertEqual(screenshot, b"element screenshot")
+        self.driver.find_element.assert_called_once_with(By.CSS_SELECTOR, "#message")
+        self.driver.get_screenshot_as_png.assert_not_called()
+        self.driver.quit.assert_called_once_with()
+
+    def test_element_timeout_closes_browser(self):
+        error = TimeoutException("Element did not become visible.")
+        with patch("webdriver_vision.capture.WebDriverWait") as wait:
+            wait.return_value.until.side_effect = error
+            with self.assertRaises(TimeoutException) as caught:
+                Capture("https://example.com", timeout=0.5).take(selector="#missing")
+            wait.assert_called_once_with(self.driver, 0.5)
+        self.assertIs(caught.exception, error)
+        self.driver.quit.assert_called_once_with()
+
+    def test_element_cannot_be_combined_with_full_page_capture(self):
+        with self.assertRaisesRegex(ValueError, "full_page"):
+            Capture("https://example.com", full_page=True).take(selector="#message")
+        self.chrome.assert_not_called()
 
 
 if __name__ == "__main__":

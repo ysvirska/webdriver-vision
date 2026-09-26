@@ -29,7 +29,7 @@ A cleanup failure after a successful capture is reported to the caller.
 | `headless` | `True` | Run Chrome without a visible window. |
 | `window_size` | `(1920, 1080)` | Browser window width and height in CSS pixels; a tuple or list of positive integers. |
 | `full_page` | `False` | Capture the document beyond the viewport using Chrome DevTools Protocol. |
-| `timeout` | `30` | Finite positive page load timeout, in seconds. |
+| `timeout` | `30` | Finite positive timeout in seconds, applied separately to navigation and element visibility waits. |
 
 By default, only the current viewport is captured. The viewport can be smaller
 than the outer browser window. For the whole document:
@@ -41,3 +41,21 @@ screenshot = Capture("https://example.com", full_page=True).take()
 Full-page capture uses the current document size. It does not scroll through the
 page to trigger lazy loading. Very large documents may exceed Chrome's screenshot
 limits. Capture always returns PNG; use `encode_image` to convert it to JPEG.
+
+## Capture an element
+
+Pass a CSS selector to `take`:
+
+```python
+screenshot = Capture("https://example.com").take(selector="#login-form")
+```
+
+The first matching element must become visible within `timeout` seconds after
+navigation. Selenium scrolls it into view when taking the element screenshot.
+The result contains PNG bytes for that element. A missing or hidden element causes
+Selenium's `TimeoutException`; invalid CSS selectors also propagate Selenium
+errors. The browser is closed in each case.
+
+An empty selector is rejected before Chrome starts. Element capture and
+`full_page=True` cannot be combined. Visibility does not guarantee that images,
+fonts, or animations inside the element have finished loading.

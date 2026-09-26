@@ -6,6 +6,9 @@ from contextlib import suppress
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from webdriver_vision.config import validate_config
 
@@ -45,8 +48,13 @@ class Capture:
         self.full_page = full_page
         self.timeout = timeout
 
-    def take(self) -> bytes:
-        """Return a PNG screenshot after navigation completes."""
+    def take(self, *, selector: str | None = None) -> bytes:
+        """Return PNG bytes for the page or a visible element matched by CSS."""
+        if selector is not None:
+            if not isinstance(selector, str) or not selector.strip():
+                raise ValueError("selector must be a non-empty CSS selector.")
+            if self.full_page:
+                raise ValueError("selector cannot be combined with full_page.")
         options = Options()
         if self.headless:
             options.add_argument("--headless=new")
@@ -55,7 +63,13 @@ class Capture:
             driver.set_window_size(*self.window_size)
             driver.set_page_load_timeout(self.timeout)
             driver.get(self.url)
-            screenshot = self._screenshot(driver)
+            if selector is None:
+                screenshot = self._screenshot(driver)
+            else:
+                element = WebDriverWait(driver, self.timeout).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
+                )
+                screenshot = element.screenshot_as_png
         except BaseException:
             # Cleanup must not replace the original capture error or interrupt.
             with suppress(Exception):
