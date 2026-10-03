@@ -7,10 +7,12 @@ such as broken layouts, overlapping elements, or error messages.
 ## Project status
 
 Chrome screenshot capture, configuration loading and validation, and PNG/JPEG
-base64 encoding are implemented. The API client and command-line interface have
-not been implemented yet. See [screenshot capture](docs/capture.md),
+base64 encoding and an OpenAI-compatible vision API client are implemented. The
+command-line interface has not been implemented yet. See
+[screenshot capture](docs/capture.md),
 [configuration loading](docs/configuration.md), and
-[screenshot encoding](docs/encoding.md) for the current APIs.
+[screenshot encoding](docs/encoding.md), and [the API client](docs/client.md)
+for the current APIs.
 
 ## Development setup
 
@@ -72,7 +74,7 @@ docs/               Usage guides and examples
 - [x] Add configuration loading and validation.
 - [x] Add image encoding.
 - [x] Implement screenshot capture.
-- [ ] Add the vision API client.
+- [x] Add the vision API client.
 - [ ] Connect the modules through a command-line interface.
 - [ ] Add tests, CI, and usage documentation.
 
