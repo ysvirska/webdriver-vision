@@ -22,6 +22,9 @@ Optional `ai.timeout` defaults to 30 seconds. The default prompt asks for visibl
 page errors; `ai.prompt` overrides it. `screenshot.format` and `screenshot.quality`
 control image encoding and default to `png` and `85`.
 
+The timeout applies to connection establishment and read inactivity, rather than
+to the total duration of an analysis. Failed requests are not retried.
+
 `AIClient.from_settings(settings)` accepts already loaded settings. To construct a
 client directly, pass `api_url`, `api_key`, and `model`, with optional `timeout`,
 `prompt`, `image_format`, and `quality` keyword arguments.
@@ -31,6 +34,21 @@ URL. It returns the first choice's non-empty text, with surrounding whitespace
 removed. Empty, malformed, or incomplete responses raise `AIResponseError`, a
 subclass of `AIClientError`. Image errors are reported before any HTTP request.
 Responses are closed after use, and redirects are not followed.
+
+## Request errors
+
+All API failures derive from `AIClientError` in `webdriver_vision.client`:
+
+- `AITimeoutError` reports connection and read timeouts.
+- `AIHTTPError` reports non-2xx status codes, including redirects, with a
+  `status_code` attribute.
+- `AIResponseError` reports invalid JSON, missing text, and incomplete reports.
+- Other connection and transport failures raise `AIClientError`.
+
+Error messages do not include the request URL, credentials, or response body.
+Configuration errors derive from `ValueError`. Invalid image data raises
+`ValueError`, and wrong image input types raise `TypeError`. These errors happen
+before the HTTP request is sent.
 
 The request schema follows the
 [official Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create).

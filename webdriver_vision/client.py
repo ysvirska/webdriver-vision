@@ -25,6 +25,18 @@ class AIResponseError(AIClientError):
     """Raised when the API response does not contain a complete text report."""
 
 
+class AITimeoutError(AIClientError):
+    """Raised when the HTTP connection or response read times out."""
+
+
+class AIHTTPError(AIClientError):
+    """Raised for a non-success HTTP response without exposing its body."""
+
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+        super().__init__(f"Vision API returned HTTP {status_code}.")
+
+
 class _BearerAuth(AuthBase):
     def __init__(self, api_key: str):
         self._api_key = api_key
@@ -112,16 +124,23 @@ class AIClient:
                 ],
             }],
         }
-        with requests.post(
-            self.api_url, json=payload, auth=_BearerAuth(self._api_key),
-            timeout=self.timeout, allow_redirects=False,
-        ) as response:
-            if not 200 <= response.status_code < 300:
-                raise AIClientError(f"Vision API returned HTTP {response.status_code}.")
-            try:
-                document = response.json()
-            except ValueError:
-                raise AIResponseError("Vision API returned invalid JSON.") from None
+        try:
+            with requests.post(
+                self.api_url, json=payload, auth=_BearerAuth(self._api_key),
+                timeout=self.timeout, allow_redirects=False,
+            ) as response:
+                if not 200 <= response.status_code < 300:
+                    raise AIHTTPError(response.status_code)
+                try:
+                    document = response.json()
+                except ValueError:
+                    raise AIResponseError("Vision API returned invalid JSON.") from None
+        except requests.Timeout:
+            raise AITimeoutError("Vision API request timed out.") from None
+        except requests.ConnectionError:
+            raise AIClientError("Could not connect to the vision API.") from None
+        except requests.RequestException:
+            raise AIClientError("Vision API request failed.") from None
         return _extract_report(document)
 
 
