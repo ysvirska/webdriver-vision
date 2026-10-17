@@ -7,12 +7,18 @@ such as broken layouts, overlapping elements, or error messages.
 ## Project status
 
 Chrome screenshot capture, configuration loading and validation, and PNG/JPEG
-base64 encoding and an OpenAI-compatible vision API client are implemented. The
-command-line interface has not been implemented yet. See
+base64 encoding, an OpenAI-compatible vision API client, and a command-line
+interface are implemented. See
 [screenshot capture](docs/capture.md),
 [configuration loading](docs/configuration.md), and
 [screenshot encoding](docs/encoding.md), and [the API client](docs/client.md)
-for the current APIs.
+for the current APIs, and [CLI usage](docs/cli.md) for command-line options.
+
+With a local configuration and `AI_API_KEY` set:
+
+```bash
+python -m webdriver_vision --url https://example.com --config config.yaml
+```
 
 ## Development setup
 
@@ -75,7 +81,7 @@ docs/               Usage guides and examples
 - [x] Add image encoding.
 - [x] Implement screenshot capture.
 - [x] Add the vision API client.
-- [ ] Connect the modules through a command-line interface.
+- [x] Connect the modules through a command-line interface.
 - [ ] Add tests, CI, and usage documentation.
 
 ## Limitations

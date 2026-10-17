@@ -19,3 +19,6 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["webdriver_vision*"]
 namespaces = false
+
+[project.scripts]
+webdriver-vision = "webdriver_vision.__main__:main"

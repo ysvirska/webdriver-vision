@@ -12,3 +12,12 @@ dist/
 .env.*
 !.env.example
 AGENTS.md
+/config.yaml
+/config.*.yaml
+!/config.example.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519*
