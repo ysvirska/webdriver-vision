@@ -34,6 +34,24 @@ timeouts remain controlled by `ai.timeout`.
 Use `--help` to list all options. Help does not require a configuration or browser.
 Exit code 0 means a report was produced, even if it describes page errors.
 
+## Validation and errors
+
+The page URL must be an absolute HTTP or HTTPS URL. Window dimensions must be
+positive integers, and the capture timeout must be finite and positive. Empty
+selectors and a selector combined with full-page capture are rejected before
+Chrome starts, including when full-page capture is enabled in YAML.
+
+Errors go to stderr, leaving stdout empty. API errors include guidance for common
+authentication, quota, timeout, and endpoint problems. Provider response bodies
+and browser stack traces are not printed.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | A text report was produced. |
+| `1` | Browser, image processing, or API failure. |
+| `2` | Invalid arguments, unreadable configuration, or invalid settings. |
+| `130` | Interrupted by the user. |
+
 ## Local credentials
 
 Use the `AI_API_KEY` environment variable for real credentials. Local `config.yaml`,

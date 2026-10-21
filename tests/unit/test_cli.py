@@ -5,7 +5,14 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from unittest.mock import patch
 
+from selenium.common.exceptions import (
+    InvalidSelectorException, TimeoutException, WebDriverException,
+)
+
 from webdriver_vision.__main__ import main
+from webdriver_vision.client import (
+    AIClientError, AIHTTPError, AIResponseError, AITimeoutError,
+)
 from webdriver_vision.config import ConfigurationError
 
 
@@ -23,7 +30,10 @@ class CLITests(unittest.TestCase):
     def run_cli(self, *arguments):
         stdout, stderr = StringIO(), StringIO()
         with redirect_stdout(stdout), redirect_stderr(stderr):
-            code = main(list(arguments))
+            try:
+                code = main(list(arguments))
+            except SystemExit as error:
+                code = error.code
         return code, stdout.getvalue(), stderr.getvalue()
 
     def test_default_workflow_prints_only_report(self):
@@ -75,10 +85,119 @@ class CLITests(unittest.TestCase):
     def test_invalid_api_settings_prevent_browser_start(self):
         self.AIClient.from_settings.side_effect = ConfigurationError("ai.model is required.")
         code, stdout, stderr = self.run_cli("--url", "https://example.com")
-        self.assertEqual(code, 1)
+        self.assertEqual(code, 2)
         self.assertEqual(stdout, "")
         self.assertIn("Error:", stderr)
         self.Capture.assert_not_called()
+
+    def test_reject_invalid_arguments_before_loading_config(self):
+        for arguments in (
+            [], ["--url", ""], ["--url", "example.com"],
+            ["--url", "file:///tmp/page.html"], ["--url", "https://bad host"],
+            ["--url", "http://example.com:wrong"], ["--url", "https://["],
+            ["--url", "https://example.com", "--window-size", "0", "600"],
+            ["--url", "https://example.com", "--window-size", "800", "-1"],
+            ["--url", "https://example.com", "--capture-timeout", "nan"],
+            ["--url", "https://example.com", "--capture-timeout", "inf"],
+            ["--url", "https://example.com", "--capture-timeout", "0"],
+            ["--url", "https://example.com", "--selector", "  "],
+        ):
+            with self.subTest(arguments=arguments):
+                code, stdout, stderr = self.run_cli(*arguments)
+                self.assertEqual(code, 2)
+                self.assertEqual(stdout, "")
+                self.assertIn("error:", stderr)
+        self.load_config.assert_not_called()
+        self.Capture.assert_not_called()
+
+    def test_file_and_yaml_errors_do_not_start_browser(self):
+        for error, message in (
+            (FileNotFoundError("private path"), "not found"),
+            (PermissionError("private path"), "Could not read"),
+            (UnicodeError("private contents"), "UTF-8"),
+            (ConfigurationError("Invalid YAML."), "Invalid YAML"),
+        ):
+            with self.subTest(error=error):
+                self.load_config.side_effect = error
+                code, stdout, stderr = self.run_cli("--url", "https://example.com")
+                self.assertEqual(code, 2)
+                self.assertEqual(stdout, "")
+                self.assertIn(message, stderr)
+                self.assertNotIn("private", stderr)
+        self.Capture.assert_not_called()
+
+    def test_conflicting_element_and_full_page_options_do_not_start_browser(self):
+        for settings, flags in (
+            ({}, ["--full-page"]),
+            ({"screenshot": {"full_page": True}}, []),
+        ):
+            with self.subTest(settings=settings):
+                self.load_config.return_value = settings
+                code, stdout, stderr = self.run_cli(
+                    "--url", "https://example.com", "--selector", "#target", *flags
+                )
+                self.assertEqual(code, 2)
+                self.assertEqual(stdout, "")
+                self.assertIn("cannot be combined", stderr)
+        self.Capture.assert_not_called()
+
+    def test_http_status_messages_are_actionable(self):
+        for status, hint in (
+            (301, "ai.api_url"), (400, "endpoint"), (401, "AI_API_KEY"),
+            (403, "model access"), (429, "quota"), (503, "try again later"),
+        ):
+            with self.subTest(status=status):
+                self.client.analyze.side_effect = AIHTTPError(status)
+                code, stdout, stderr = self.run_cli("--url", "https://example.com")
+                self.assertEqual(code, 1)
+                self.assertEqual(stdout, "")
+                self.assertIn(str(status), stderr)
+                self.assertIn(hint, stderr)
+
+    def test_api_errors_are_reported_without_private_details(self):
+        for error, message in (
+            (AITimeoutError("private key"), "ai.timeout"),
+            (AIResponseError("private response"), "invalid or incomplete"),
+            (AIClientError("private URL"), "connectivity"),
+        ):
+            with self.subTest(error=error):
+                self.client.analyze.side_effect = error
+                code, stdout, stderr = self.run_cli("--url", "https://example.com")
+                self.assertEqual(code, 1)
+                self.assertEqual(stdout, "")
+                self.assertIn(message, stderr)
+                self.assertNotIn("private", stderr)
+                self.assertNotIn("Traceback", stderr)
+
+    def test_browser_errors_are_reported_without_stack_traces(self):
+        for error, message in (
+            (TimeoutException("private URL"), "timed out"),
+            (InvalidSelectorException("private selector"), "Invalid CSS selector"),
+            (WebDriverException("private stack trace"), "ChromeDriver"),
+        ):
+            with self.subTest(error=error):
+                self.Capture.return_value.take.side_effect = error
+                code, stdout, stderr = self.run_cli("--url", "https://example.com")
+                self.assertEqual(code, 1)
+                self.assertEqual(stdout, "")
+                self.assertIn(message, stderr)
+                self.assertNotIn("private", stderr)
+        self.client.analyze.assert_not_called()
+
+    def test_image_error_is_reported_without_details(self):
+        self.client.analyze.side_effect = ValueError("private image details")
+        self.assertEqual(
+            self.run_cli("--url", "https://example.com"),
+            (1, "", "Error: Screenshot processing failed.\n"),
+        )
+
+    def test_interrupt_returns_130(self):
+        self.Capture.return_value.take.side_effect = KeyboardInterrupt()
+        self.assertEqual(
+            self.run_cli("--url", "https://example.com"),
+            (130, "", "Error: Interrupted.\n"),
+        )
+        self.client.analyze.assert_not_called()
 
     def test_help_does_not_load_configuration_or_start_browser(self):
         stdout = StringIO()
