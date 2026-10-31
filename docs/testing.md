@@ -24,3 +24,10 @@ real Chrome, and send the images to the local fake API. Selenium Manager may nee
 network access to download ChromeDriver. All API requests remain on localhost and
 use a fixed dummy credential. The model's ability to detect visual errors is not
 tested by this suite.
+
+## Continuous integration
+
+[GitHub Actions](../.github/workflows/tests.yml) runs unit and local HTTP integration
+tests on Python 3.10, 3.12, and 3.14. A separate Ubuntu job runs the browser tests
+with Chrome against the installed package. The workflow runs on pushes to `main`
+and pull requests. It does not need provider secrets or contact a paid vision API.
