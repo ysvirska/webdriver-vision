@@ -1,0 +1,19 @@
+# Copy this file to config.yaml and replace the API endpoint and model.
+# Supply the real credential through AI_API_KEY, never in this file.
+browser:
+  headless: true
+  window_size: [1920, 1080]
+
+screenshot:
+  format: png
+  quality: 85
+  full_page: false
+
+ai:
+  api_url: https://api.example.invalid/v1/chat/completions
+  api_key: ${AI_API_KEY}
+  model: your-vision-model
+  timeout: 30
+  prompt: >-
+    Check this screenshot for visible page errors and describe them briefly.
+    If no issues are visible, say so.

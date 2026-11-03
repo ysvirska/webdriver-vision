@@ -1,5 +1,12 @@
 # Configuration
 
+Start with [config.example.yaml](../config.example.yaml). Copy it to `config.yaml`,
+replace `ai.api_url` with your provider's full Chat Completions endpoint, and set
+`ai.model` to a vision-capable model available to your account. The `.invalid`
+hostname and model in the example are placeholders and cannot be used as-is.
+Set the real key through `AI_API_KEY`; keep `api_key: ${AI_API_KEY}` in the file.
+The local `config.yaml` is ignored by Git; the example contains no credentials.
+
 Load a UTF-8 YAML file with `load_config`:
 
 ```python
