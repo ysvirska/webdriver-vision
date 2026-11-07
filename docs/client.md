@@ -7,8 +7,8 @@ and Anthropic Messages endpoints use different schemas and are not supported.
 ```python
 from webdriver_vision import AIClient, Capture
 
-screenshot = Capture("https://example.com").take()
 client = AIClient.from_config("config.yaml")
+screenshot = Capture("https://example.com").take()
 report = client.analyze(screenshot)
 print(report)
 ```

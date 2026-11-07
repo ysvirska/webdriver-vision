@@ -1,7 +1,8 @@
 # Command-line usage
 
-Create a local YAML configuration as described in [configuration](configuration.md)
-and [the API client](client.md), then set `AI_API_KEY` in your environment.
+Follow [installation and first run](installation.md) to install the package, copy
+`config.example.yaml` to a local `config.yaml`, choose the endpoint and model,
+and set `AI_API_KEY` in your environment.
 
 ```bash
 python -m webdriver_vision --url https://example.com --config config.yaml
@@ -23,6 +24,7 @@ the YAML file control browser options, image format and quality, and API request
 webdriver-vision --url https://example.com --selector '#login-form'
 webdriver-vision --url https://example.com --full-page
 webdriver-vision --url https://example.com --no-headless --window-size 1280 900
+webdriver-vision --url https://example.com --capture-timeout 60 > report.txt
 ```
 
 `--config` defaults to `config.yaml`. `--selector` captures a visible element.
@@ -30,6 +32,16 @@ webdriver-vision --url https://example.com --no-headless --window-size 1280 900
 override the corresponding YAML settings. `--capture-timeout` defaults to 30
 seconds and applies separately to navigation and element visibility. API request
 timeouts remain controlled by `ai.timeout`.
+
+Flags override supplied YAML values, including explicit false values. For example,
+use `--no-full-page --selector '#login-form'` when the file enables full-page
+capture. Page capture returns PNG; `screenshot.format: jpeg` converts the image
+before sending it to the API. Use `screenshot.quality` to set JPEG quality.
+
+The CLI starts a fresh browser session, so it does not reuse an existing Chrome
+login or cookies. It sends one image and prompt to the API, prints the returned
+report, and exits. A report that describes a visual error still has exit code 0;
+the text is not converted into an automated pass/fail judgment.
 
 Use `--help` to list all options. Help does not require a configuration or browser.
 Exit code 0 means a report was produced, even if it describes page errors.
