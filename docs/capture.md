@@ -1,5 +1,8 @@
 # Screenshot capture
 
+See [Chrome setup and troubleshooting](browser-setup.md) if the browser cannot
+start, and [known limitations](limitations.md) for capture readiness and sessions.
+
 Install the package and Google Chrome. Selenium Manager locates a compatible
 driver and may download it on the first run, which requires network access.
 

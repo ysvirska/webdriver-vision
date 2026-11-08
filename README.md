@@ -106,8 +106,13 @@ Chrome checks and the CI workflow.
 - [Image encoding](docs/encoding.md)
 - [Vision API client](docs/client.md)
 - [Testing and CI](docs/testing.md)
+- [Chrome setup and troubleshooting](docs/browser-setup.md)
+- [Known limitations](docs/limitations.md)
 
 ## Limitations
 
 AI analysis can miss issues or report problems that are not present. Treat its
 output as a review aid and confirm findings with browser tests or manual checks.
+The client supports the Chat Completions image schema, and each capture uses a
+fresh Chrome session. See [known limitations](docs/limitations.md) for readiness,
+authentication, image size, and API compatibility details.

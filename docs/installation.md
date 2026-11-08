@@ -6,6 +6,8 @@
 - Google Chrome for screenshot capture.
 - An OpenAI-compatible Chat Completions endpoint and a vision-capable model.
 
+See [Chrome setup](browser-setup.md) for browser and driver requirements.
+
 Install from this repository; no PyPI release is required:
 
 ```bash
