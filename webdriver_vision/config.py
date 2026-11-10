@@ -61,6 +61,9 @@ def validate_config(settings: dict[str, Any]) -> None:
     screenshot = settings.get("screenshot", {})
     ai = settings.get("ai", {})
 
+    if "remote_url" in browser and not _is_http_url(browser["remote_url"]):
+        raise ConfigurationError("browser.remote_url must be an absolute HTTP or HTTPS URL.")
+
     for section_name, section, field in (
         ("browser", browser, "headless"),
         ("screenshot", screenshot, "full_page"),

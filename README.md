@@ -34,6 +34,10 @@ The example contains no real credentials. Local `config.yaml` and `.env` files a
 ignored by Git. See [installation](docs/installation.md) for Windows instructions
 and [CLI usage](docs/cli.md) for all flags and exit codes.
 
+For a containerized run without installing Python or Chrome locally, see
+[Docker Compose](docs/docker.md). It uses a separate Selenium Chromium service
+and keeps credentials outside the image.
+
 ## Python API
 
 ```python
@@ -100,6 +104,7 @@ Chrome checks and the CI workflow.
 ## Documentation
 
 - [Installation and first run](docs/installation.md)
+- [Docker Compose](docs/docker.md)
 - [Command-line usage](docs/cli.md)
 - [Configuration](docs/configuration.md)
 - [Screenshot capture](docs/capture.md)

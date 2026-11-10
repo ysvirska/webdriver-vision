@@ -5,6 +5,8 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from unittest.mock import patch
 
+from urllib3.exceptions import MaxRetryError
+
 from selenium.common.exceptions import (
     InvalidSelectorException, TimeoutException, WebDriverException,
 )
@@ -45,7 +47,7 @@ class CLITests(unittest.TestCase):
         self.AIClient.from_settings.assert_called_once_with({})
         self.Capture.assert_called_once_with(
             "https://example.com", headless=True, window_size=(1920, 1080),
-            full_page=False, timeout=30,
+            full_page=False, timeout=30, remote_url=None,
         )
         self.Capture.return_value.take.assert_called_once_with(selector=None)
         self.client.analyze.assert_called_once_with(b"screenshot")
@@ -62,7 +64,7 @@ class CLITests(unittest.TestCase):
         self.load_config.assert_called_once_with("custom.yaml")
         self.Capture.assert_called_once_with(
             "https://example.com", headless=False, window_size=[800, 600],
-            full_page=True, timeout=30,
+            full_page=True, timeout=30, remote_url=None,
         )
 
     def test_command_line_flags_override_yaml_including_false(self):
@@ -78,7 +80,7 @@ class CLITests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.Capture.assert_called_once_with(
             "https://example.com", headless=True, window_size=[640, 480],
-            full_page=False, timeout=5,
+            full_page=False, timeout=5, remote_url=None,
         )
         self.Capture.return_value.take.assert_called_once_with(selector="#alert")
 
@@ -101,6 +103,7 @@ class CLITests(unittest.TestCase):
             ["--url", "https://example.com", "--capture-timeout", "inf"],
             ["--url", "https://example.com", "--capture-timeout", "0"],
             ["--url", "https://example.com", "--selector", "  "],
+            ["--url", "https://example.com", "--remote-url", "invalid"],
         ):
             with self.subTest(arguments=arguments):
                 code, stdout, stderr = self.run_cli(*arguments)
@@ -174,6 +177,7 @@ class CLITests(unittest.TestCase):
             (TimeoutException("private URL"), "timed out"),
             (InvalidSelectorException("private selector"), "Invalid CSS selector"),
             (WebDriverException("private stack trace"), "ChromeDriver"),
+            (MaxRetryError(None, "private URL"), "remote-url"),
         ):
             with self.subTest(error=error):
                 self.Capture.return_value.take.side_effect = error
@@ -183,6 +187,17 @@ class CLITests(unittest.TestCase):
                 self.assertIn(message, stderr)
                 self.assertNotIn("private", stderr)
         self.client.analyze.assert_not_called()
+
+    def test_remote_url_from_config_can_be_overridden_by_flag(self):
+        self.load_config.return_value = {"browser": {"remote_url": "http://grid:4444"}}
+        for flags, expected in (
+            ([], "http://grid:4444"),
+            (["--remote-url", "http://other-grid:4444"], "http://other-grid:4444"),
+        ):
+            with self.subTest(flags=flags):
+                code, _, _ = self.run_cli("--url", "https://example.com", *flags)
+                self.assertEqual(code, 0)
+                self.assertEqual(self.Capture.call_args.kwargs["remote_url"], expected)
 
     def test_image_error_is_reported_without_details(self):
         self.client.analyze.side_effect = ValueError("private image details")

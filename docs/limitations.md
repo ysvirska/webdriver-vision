@@ -13,8 +13,8 @@ software workflow and request format; they do not measure model accuracy.
 
 ## Capture
 
-- Chrome is the only implemented browser. Full-page capture depends on Chrome
-  DevTools Protocol.
+- Chrome-compatible WebDriver sessions are supported, including remote Chromium
+  in Docker. Full-page capture depends on Chrome DevTools Protocol.
 - Every call starts a fresh session. Existing logins, cookies, and browser profiles
   are not reused, and there is no built-in login flow.
 - Element selectors apply to the main document. Switching into iframes or shadow

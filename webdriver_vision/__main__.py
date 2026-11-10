@@ -6,6 +6,8 @@ import sys
 from collections.abc import Sequence
 from urllib.parse import urlsplit
 
+from urllib3.exceptions import HTTPError as WebDriverConnectionError
+
 from selenium.common.exceptions import (
     InvalidSelectorException, TimeoutException, WebDriverException,
 )
@@ -66,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--url", required=True, type=_page_url, help="HTTP(S) page URL.")
     parser.add_argument("--config", default="config.yaml", help="YAML settings file.")
     parser.add_argument(
+        "--remote-url", type=_page_url,
+        help="Remote Chrome WebDriver URL; overrides browser.remote_url.",
+    )
+    parser.add_argument(
         "--selector", type=_selector, help="CSS selector of a visible element to capture."
     )
     parser.add_argument(
@@ -117,8 +123,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _fail("Invalid CSS selector. Check --selector.", 1)
     except TimeoutException:
         return _fail("Page load or element visibility timed out. Check --capture-timeout.", 1)
-    except (WebDriverException, OSError):
-        return _fail("Browser capture failed. Check Chrome and ChromeDriver.", 1)
+    except (WebDriverException, WebDriverConnectionError, OSError):
+        return _fail(
+            "Browser capture failed. Check Chrome, ChromeDriver, or --remote-url.", 1
+        )
     except (ValueError, TypeError):
         return _fail("Screenshot processing failed.", 1)
     except KeyboardInterrupt:
@@ -158,6 +166,10 @@ def _analyze(args: argparse.Namespace) -> str:
         ),
         full_page=full_page,
         timeout=args.capture_timeout,
+        remote_url=(
+            args.remote_url if args.remote_url is not None
+            else browser.get("remote_url")
+        ),
     )
     return client.analyze(capture.take(selector=args.selector))
 

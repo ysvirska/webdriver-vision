@@ -5,6 +5,9 @@ start, and [known limitations](limitations.md) for capture readiness and session
 
 Install the package and Google Chrome. Selenium Manager locates a compatible
 driver and may download it on the first run, which requires network access.
+For a remote Chrome WebDriver, pass `remote_url="http://grid:4444"` to `Capture`.
+No local browser or driver is needed in that case. [Docker Compose](docker.md)
+provides a remote Chromium service.
 
 ```python
 from pathlib import Path
@@ -33,6 +36,7 @@ A cleanup failure after a successful capture is reported to the caller.
 | `window_size` | `(1920, 1080)` | Browser window width and height in CSS pixels; a tuple or list of positive integers. |
 | `full_page` | `False` | Capture the document beyond the viewport using Chrome DevTools Protocol. |
 | `timeout` | `30` | Finite positive timeout in seconds, applied separately to navigation and element visibility waits. |
+| `remote_url` | `None` | Optional remote Chrome WebDriver URL; local Chrome is used when omitted. |
 
 By default, only the current viewport is captured. The viewport can be smaller
 than the outer browser window. For the whole document:

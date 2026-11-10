@@ -44,6 +44,7 @@ Sections and fields are optional; unknown fields are preserved.
 | --- | --- |
 | `browser.headless` | A boolean. |
 | `browser.window_size` | A list of two positive integers: width and height. |
+| `browser.remote_url` | Optional absolute HTTP or HTTPS URL for a remote Chrome WebDriver. Omit for local Chrome. |
 | `screenshot.format` | `png` or `jpeg`, in lowercase. |
 | `screenshot.full_page` | A boolean. |
 | `screenshot.quality` | An integer from 1 to 95; used for JPEG encoding. |

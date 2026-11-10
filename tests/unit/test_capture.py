@@ -228,6 +228,56 @@ class CaptureTests(unittest.TestCase):
                     Capture(**arguments)
         self.chrome.assert_not_called()
 
+    def test_remote_capture_uses_grid_instead_of_local_chrome(self):
+        with patch("webdriver_vision.capture.webdriver.Remote") as remote:
+            driver = remote.return_value
+            driver.get_screenshot_as_png.return_value = b"remote screenshot"
+            result = Capture(
+                "https://example.com", remote_url="http://browser:4444"
+            ).take()
+            self.assertEqual(result, b"remote screenshot")
+            self.assertEqual(
+                remote.call_args.kwargs["command_executor"], "http://browser:4444"
+            )
+            self.assertIn("--headless=new", remote.call_args.kwargs["options"].arguments)
+            driver.quit.assert_called_once_with()
+        self.chrome.assert_not_called()
+
+    def test_remote_capture_failure_closes_session(self):
+        with patch("webdriver_vision.capture.webdriver.Remote") as remote:
+            driver = remote.return_value
+            error = WebDriverException("Remote navigation failed.")
+            driver.get.side_effect = error
+            driver.quit.side_effect = WebDriverException("Remote cleanup failed.")
+            with self.assertRaises(WebDriverException) as caught:
+                Capture("https://example.com", remote_url="http://browser:4444").take()
+            self.assertIs(caught.exception, error)
+            driver.quit.assert_called_once_with()
+        self.chrome.assert_not_called()
+
+    def test_remote_full_page_capture_decodes_protocol_response(self):
+        with patch("webdriver_vision.capture.webdriver.Remote") as remote:
+            driver = remote.return_value
+            driver.execute_cdp_cmd.side_effect = [
+                {"cssContentSize": {"x": 0, "y": 0, "width": 800, "height": 1800}},
+                {"data": base64.b64encode(b"full-page image").decode("ascii")},
+            ]
+            result = Capture(
+                "https://example.com", remote_url="http://browser:4444", full_page=True
+            ).take()
+            self.assertEqual(result, b"full-page image")
+            self.assertEqual(driver.execute_cdp_cmd.call_count, 2)
+            driver.quit.assert_called_once_with()
+
+    def test_reject_invalid_remote_url_before_browser_start(self):
+        with patch("webdriver_vision.capture.webdriver.Remote") as remote:
+            for url in ("", "browser:4444", "ftp://browser", 123):
+                with self.subTest(url=url):
+                    with self.assertRaisesRegex(ValueError, "browser.remote_url"):
+                        Capture("https://example.com", remote_url=url)
+            remote.assert_not_called()
+        self.chrome.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

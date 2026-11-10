@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!.dockerignore
+!pyproject.toml
+!README.md
+!webdriver_vision/
+webdriver_vision/**
+!webdriver_vision/*.py

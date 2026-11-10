@@ -33,6 +33,11 @@ override the corresponding YAML settings. `--capture-timeout` defaults to 30
 seconds and applies separately to navigation and element visibility. API request
 timeouts remain controlled by `ai.timeout`.
 
+Use `--remote-url http://grid:4444` to connect to a remote Chrome WebDriver rather
+than launch Chrome locally. It overrides the optional `browser.remote_url` setting.
+The target page must be reachable from that remote browser. Docker Compose supplies
+this flag automatically; see [Docker usage](docker.md).
+
 Flags override supplied YAML values, including explicit false values. For example,
 use `--no-full-page --selector '#login-form'` when the file enables full-page
 capture. Page capture returns PNG; `screenshot.format: jpeg` converts the image
