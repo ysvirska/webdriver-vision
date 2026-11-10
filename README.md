@@ -1,5 +1,9 @@
 # webdriver-vision
 
+[![Tests](https://github.com/ysvirska/webdriver-vision/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/ysvirska/webdriver-vision/actions/workflows/tests.yml?query=branch%3Amain)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](docs/docker.md)
+
 A Python tool for checking web pages with Selenium screenshots and an AI vision API.
 The goal is to turn a screenshot into a text report describing visible page errors,
 such as broken layouts, overlapping elements, or error messages.
@@ -100,6 +104,9 @@ python -m unittest discover -s tests/integration -v
 The default tests use generated images, mocked browser sessions, and a local fake
 API. They require no real API credential. See [testing](docs/testing.md) for real
 Chrome checks and the CI workflow.
+
+The Tests badge tracks the latest push to `main`. CI checks Python 3.10, 3.12,
+and 3.14, real Chrome integration, and Docker Compose builds and capture tests.
 
 ## Documentation
 
